@@ -36,10 +36,10 @@ Transforming the silhouette of a teapot into a rectangle. The loss function is t
 Reference image, optimization, and the result.
 
 
-<p align="center">
-<img src="data/example2_ref.png" \>
-<img src="data/example2_optimization.gif" \>
-<img src="data/example2_result.gif" \>
+<p align="left">
+<img src="data/example2_ref.png"\>
+<img src="data/example2_optimization.gif" style="padding-left: 10px;" \>
+<img src="data/example2_result.gif" style="padding-left: 10px;" \>
 </p>
 
 ## Example 3: Optimizing textures
@@ -48,9 +48,9 @@ Matching the color of a teapot with a reference image.
 
 Reference image, result.
 
-<p align="center">
-<img src="data/example3_ref.png" \>
-<img src="data/example3_result.gif" \>
+<p align="left">
+<img src="data/example3_ref.png" style="padding-left: 10px;" \>
+<img src="data/example3_result.gif" style="padding-left: 10px;" \>
 </p>
 
 ## Example 4: Finding camera parameters
@@ -59,10 +59,10 @@ The derivative of images with respect to camera pose can be computed through thi
 
 From left to right: reference image, initial state, and optimization process.
 
-<p align="center">
+<p align="left">
 <img src="data/example4_ref.png" \>
-<img src="data/example4_init.png" \>
-<img src="data/example4_result.gif" \>
+<img src="data/example4_init.png" style="padding-left: 10px;" \>
+<img src="data/example4_result.gif" style="padding-left: 10px;" \>
 </p>
 
 ## Citation
