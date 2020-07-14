@@ -16,10 +16,10 @@ pip install neural_renderer_jittor
 Since running install.py requires Jittor, make sure to install Jittor before running the above command.
 ## Running examples
 ```
-python ./examples/example1.py
-python ./examples/example2.py
-python ./examples/example3.py
-python ./examples/example4.py
+python3.7 example1.py
+python3.7 example2.py
+python3.7 example3.py
+python3.7 example4.py
 ```
 
 
@@ -38,13 +38,7 @@ Reference image, optimization, and the result.
 
 <p align="center">
 <img src="data/example2_ref.png" \>
-</p>
-
-<p align="center">
 <img src="data/example2_optimization.gif" \>
-</p>
-
-<p align="center">
 <img src="data/example2_result.gif" \>
 </p>
 
