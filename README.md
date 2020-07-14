@@ -50,9 +50,6 @@ Reference image, result.
 
 <p align="center">
 <img src="data/example3_ref.png" \>
-</p>
-
-<p align="center">
 <img src="data/example3_result.gif" \>
 </p>
 
@@ -64,13 +61,7 @@ From left to right: reference image, initial state, and optimization process.
 
 <p align="center">
 <img src="data/example4_ref.png" \>
-</p>
-
-<p align="center">
 <img src="data/example4_init.png" \>
-</p>
-
-<p align="center">
 <img src="data/example4_result.gif" \>
 </p>
 
