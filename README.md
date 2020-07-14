@@ -25,7 +25,7 @@ python3.7 example4.py
 
 ## Example 1: Drawing an object from multiple viewpoints
 
-<p align="center">
+<p align="left">
 <img src="data/example1.gif" \>
 </p>
 
@@ -38,8 +38,8 @@ Reference image, optimization, and the result.
 
 <p align="left">
 <img src="data/example2_ref.png"\>
-<img src="data/example2_optimization.gif" style="padding-left: 10px;" \>
-<img src="data/example2_result.gif" style="padding-left: 10px;" \>
+<img src="data/example2_optimization.gif" style="padding-left: 25px;" \>
+<img src="data/example2_result.gif" style="padding-left: 25px;" \>
 </p>
 
 ## Example 3: Optimizing textures
@@ -49,8 +49,8 @@ Matching the color of a teapot with a reference image.
 Reference image, result.
 
 <p align="left">
-<img src="data/example3_ref.png" style="padding-left: 10px;" \>
-<img src="data/example3_result.gif" style="padding-left: 10px;" \>
+<img src="data/example3_ref.png" style="padding-left: 25px;" \>
+<img src="data/example3_result.gif" style="padding-left: 25px;" \>
 </p>
 
 ## Example 4: Finding camera parameters
@@ -61,8 +61,8 @@ From left to right: reference image, initial state, and optimization process.
 
 <p align="left">
 <img src="data/example4_ref.png" \>
-<img src="data/example4_init.png" style="padding-left: 10px;" \>
-<img src="data/example4_result.gif" style="padding-left: 10px;" \>
+<img src="data/example4_init.png" style="padding-left: 25px;" \>
+<img src="data/example4_result.gif" style="padding-left: 25px;" \>
 </p>
 
 ## Citation
