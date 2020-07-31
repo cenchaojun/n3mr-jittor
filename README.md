@@ -9,7 +9,7 @@ The library is fully functional and it passes all the test cases supplied by the
 Detailed documentation will be added in the near future.
 
 ## Running examples
-Since running install.py requires Jittor, make sure to install Jittor before running the above command.
+Make sure to install Jittor before running the above command.
 ```
 git clone https://github.com/zhouwy19/N3MR_jittor.git
 cd N3MR_jittor
