@@ -8,14 +8,11 @@ Currently the API is the same as in the original implementation with some smalls
 The library is fully functional and it passes all the test cases supplied by the authors of the original library.
 Detailed documentation will be added in the near future.
 
-## Installation
-You can install the package by running
-```
-pip install neural_renderer_jittor
-```
-Since running install.py requires Jittor, make sure to install Jittor before running the above command.
 ## Running examples
+Since running install.py requires Jittor, make sure to install Jittor before running the above command.
 ```
+git clone https://github.com/zhouwy19/N3MR_jittor.git
+cd N3MR_jittor
 python3.7 example1.py
 python3.7 example2.py
 python3.7 example3.py
