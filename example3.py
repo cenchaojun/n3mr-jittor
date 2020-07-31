@@ -1,7 +1,6 @@
 """
 Example 3. Optimizing textures.
 """
-from __future__ import division
 import os
 import argparse
 import glob
@@ -15,7 +14,6 @@ import imageio
 
 import neural_renderer as nr
 jt.flags.use_cuda = 1
-from pdb import set_trace as st
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(current_dir, 'data')
@@ -44,7 +42,6 @@ class Model(nn.Module):
 
     def execute(self):
         num = np.random.uniform(0, 360)
-        print(">>>>>", num)
         self.renderer.eye = nr.get_points_from_angles(2.732, 0, num)
         image, _, _ = self.renderer(self.vertices, self.faces, jt.tanh(self.textures))
         loss = jt.sum((image - self.image_ref).sqr())
@@ -72,10 +69,6 @@ def main():
     optimizer = nn.Adam(model.parameters(), lr=0.1, betas=(0.5,0.999))
     loop = tqdm.tqdm(range(300))
     for num in loop:
-        # if num == 10:
-        #     st()
-        for p in model.parameters():
-            print(p.is_stop_grad() ,p.min(), p.max())
         loop.set_description('Optimizing')
         loss = model()
         optimizer.step(loss)

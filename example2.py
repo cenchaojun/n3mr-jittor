@@ -1,7 +1,6 @@
 """
 Example 2. Optimizing vertices.
 """
-from __future__ import division
 import os
 import argparse
 import glob
@@ -14,7 +13,6 @@ import tqdm
 import imageio
 
 import neural_renderer as nr
-from pdb import set_trace as st
 jt.flags.use_cuda = 1
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -44,7 +42,6 @@ class Model(nn.Module):
         self.renderer.eye = nr.get_points_from_angles(2.732, 0, 90)
         image = self.renderer(self.vertices, self.faces, mode='silhouettes')
         loss = jt.sum((image - self.image_ref.unsqueeze(0)).sqr())
-        print("[*] loss: ", loss)
         return loss
 
 def make_gif(filename):
@@ -68,19 +65,10 @@ def main():
     model = Model(args.filename_obj, args.filename_ref)
 
     optimizer = nn.Adam(model.parameters(), lr=1e-3)
-    # optimizer = nn.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3)
-    # optimizer.setup(model)
-    # loop = tqdm.tqdm(range(300))
-    # for i in loop:
-    for i in range(300):
-        # loop.set_description('Optimizing')
-        # optimizer.target.cleargrads()
-        print("=" * 30)
-        print("=" * 30)
+    loop = tqdm.tqdm(range(300))
+    for i in loop:
+        loop.set_description('Optimizing')
         loss = model()
-        for p in model.parameters():
-            print(p.is_stop_grad() ,p.min(), p.max())
-
         optimizer.step(loss)
         images = model.renderer(model.vertices, model.faces, mode='silhouettes')
         image = images.numpy()[0,0]

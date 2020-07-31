@@ -44,6 +44,5 @@ def lighting(faces, textures, intensity_ambient=0.5, intensity_directional=0.5,
         light += intensity_directional * (color_directional.unsqueeze(1) * cos.unsqueeze(2))
     # apply
     light = light.unsqueeze(-2).unsqueeze(-2).unsqueeze(-2)
-    from pdb import set_trace as st
     textures *= light
     return textures

@@ -1,6 +1,4 @@
-from __future__ import division
 import math
-
 import jittor as jt
 
 def get_points_from_angles(distance, elevation, azimuth, degrees=True):

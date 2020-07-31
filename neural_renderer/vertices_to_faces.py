@@ -1,5 +1,5 @@
 import jittor as jt
-
+import numpy as np
 
 def vertices_to_faces(vertices, faces):
     """
@@ -12,9 +12,8 @@ def vertices_to_faces(vertices, faces):
     assert (vertices.shape[0] == faces.shape[0])
     assert (vertices.shape[2] == 3)
     assert (faces.shape[2] == 3)
-
     bs, nv = vertices.shape[:2]
     bs, nf = faces.shape[:2]
-    faces = faces + (jt.index(bs)[0] * nv).unsqueeze(-1).unsqueeze(-1)
+    faces = faces + (jt.array(np.arange(bs)) * nv).unsqueeze(-1).unsqueeze(-1)
     vertices = vertices.reshape((bs * nv, 3))
     return vertices[faces]

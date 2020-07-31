@@ -1,4 +1,3 @@
-from pdb import set_trace as st
 import jittor as jt
 from jittor import nn
 from jittor import Function
@@ -35,6 +34,7 @@ class RasterizeFunction(Function):
             grad_textures = jt.zeros(textures.shape).float32()
         else:
             grad_textures = jt.zeros(1).float32()
+
         # get grad_outputs
         if self.return_rgb:
             if grad_rgb_map is None:
@@ -51,27 +51,20 @@ class RasterizeFunction(Function):
                 grad_depth_map = jt.zeros(depth_map.shape)
         else:
             grad_depth_map = jt.zeros(1).float32()
+
         # backward pass
         grad_faces = self.backward_pixel_map(faces, face_index_map, rgb_map, alpha_map, grad_rgb_map, grad_alpha_map, grad_faces)
-
-        print("grad_textures >>>", grad_textures.min(), grad_textures.max(), grad_rgb_map.min(), grad_rgb_map.max())
-
-        print("\n\n")
-
-        for var in [face_index_map, sampling_weight_map, sampling_index_map, grad_rgb_map, grad_textures]:
-            print(var.min(), var.max())
-            
-        print("\n\n")
-
         grad_textures = self.backward_textures(face_index_map, sampling_weight_map, sampling_index_map, grad_rgb_map, grad_textures)
-        print("grad_faces >>>", grad_faces.min(), grad_faces.max())
-        
         grad_faces = self.backward_depth_map(faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map, grad_faces)
-        
-        print("grad_faces >>>", grad_faces.min(), grad_faces.max())
-        print("grad_textures >>>", grad_textures.min(), grad_textures.max())
+
         if self.texture_size is None:
             grad_textures = None
+        
+        if grad_faces is not None:
+            grad_faces.sync()
+        if grad_textures is not None:
+            grad_textures.sync()
+
         return grad_faces, grad_textures
 
     def execute(self, faces, textures):
@@ -247,15 +240,11 @@ def rasterize_rgbad(
     # transpose & vertical flip
     if return_rgb:
         rgb = rgb.permute((0, 3, 1, 2))
-        # pytorch does not support negative slicing for the moment
         # may need to look at this again because it seems to be very slow
-        # rgb = rgb[:, :, ::-1, :]
         rgb = rgb[:, :, list(reversed(range(rgb.shape[2]))), :]
     if return_alpha:
-        # alpha = alpha[:, ::-1, :]
         alpha = alpha[:, list(reversed(range(alpha.shape[1]))), :]
     if return_depth:
-        # depth = depth[:, ::-1, :]
         depth = depth[:, list(reversed(range(depth.shape[1]))), :]
 
     if anti_aliasing:

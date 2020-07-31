@@ -1,10 +1,7 @@
-from __future__ import division
 import os
-
 import jittor as jt
 import numpy as np
 from skimage.io import imread
-
 import neural_renderer.cuda.load_textures as load_textures_cuda
 
 texture_wrapping_dict = {'REPEAT': 0, 'MIRRORED_REPEAT': 1,
@@ -93,7 +90,6 @@ def load_textures(filename_obj, filename_mtl, texture_size, texture_wrapping='RE
         if image.shape[2] == 4:
             image = image[:,:,:3]
 
-        # pytorch does not support negative slicing for the moment
         image = image[::-1, :, :]
         image = jt.array(image.copy()).float32()
         is_update = (np.array(material_names) == material_name).astype(np.int32)

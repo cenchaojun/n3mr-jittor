@@ -13,7 +13,6 @@ import tqdm
 import imageio
 
 import neural_renderer as nr
-from pdb import set_trace as st
 jt.flags.use_cuda = 1
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -78,17 +77,11 @@ def main():
 
     model = Model(args.filename_obj, args.filename_ref)
 
-    # optimizer = chainer.optimizers.Adam(alpha=0.1)
     optimizer = nn.Adam(model.parameters(), lr=0.1)
     loop = tqdm.tqdm(range(1000))
     for i in loop:
         loss = model()
-        # for p in model.parameters():
-        #     if not p.is_stop_grad():
-        #         print(p, jt.grad(loss,p))
         optimizer.step(loss)
-        # if i == 20:
-        #     break
         images, _, _ = model.renderer(model.vertices, model.faces, jt.tanh(model.textures))
         image = images.numpy()[0].transpose(1,2,0)
         imsave('/tmp/_tmp_%04d.png' % i, image)

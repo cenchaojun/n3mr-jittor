@@ -1,13 +1,8 @@
-from __future__ import division
 import math
-
 import jittor as jt
 from jittor import nn
-
 import numpy
-
 import neural_renderer as nr
-from pdb import set_trace as st
 
 class Renderer(nn.Module):
     def __init__(self, image_size=256, anti_aliasing=True, background_color=[0,0,0],
@@ -32,14 +27,14 @@ class Renderer(nn.Module):
             self.R = R
             self.t = t
             if isinstance(self.K, numpy.ndarray):
-                self.K = jt.array(self.K)
+                self.K = jt.array(self.K).float32()
             if isinstance(self.R, numpy.ndarray):
-                self.R = jt.array(self.R)
+                self.R = jt.array(self.R).float32()
             if isinstance(self.t, numpy.ndarray):
-                self.t = jt.array(self.t)
+                self.t = jt.array(self.t).float32()
             self.dist_coeffs = dist_coeffs
             if dist_coeffs is None:
-                self.dist_coeffs = jt.array([[0., 0., 0., 0., 0.]])
+                self.dist_coeffs = jt.array([[0., 0., 0., 0., 0.]]).float32()
             self.orig_size = orig_size
         elif self.camera_mode in ['look', 'look_at']:
             self.perspective = perspective

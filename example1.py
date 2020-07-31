@@ -12,7 +12,7 @@ import jittor as jt
 jt.flags.use_cuda = 1
 
 import neural_renderer as nr
-from pdb import set_trace as st
+
 current_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(current_dir, 'data')
 
@@ -53,7 +53,6 @@ def main():
         images, _, _ = renderer(vertices, faces, textures)  # [batch_size, RGB, image_size, image_size]
         image = images.numpy()[0].transpose((1, 2, 0))  # [image_size, image_size, RGB]
         writer.append_data((255*image).astype(np.uint8))
-        # cv2.imwrite(f"{num}.png", (255*image).astype(np.uint8))
     writer.close()
 
 if __name__ == '__main__':

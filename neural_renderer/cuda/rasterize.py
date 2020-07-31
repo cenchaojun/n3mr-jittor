@@ -16,7 +16,6 @@ def forward_face_index_map(
     return_depth):
     return jt.code([face_index_map.shape, weight_map.shape, depth_map.shape, face_inv_map.shape], [face_index_map.dtype, weight_map.dtype, depth_map.dtype, face_inv_map.dtype], [faces, faces_inv], 
     cuda_header='''
-#include <iostream>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -756,7 +755,7 @@ __global__ void backward_textures_cuda_kernel(
     ''')
 
 def backward_depth_map(faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map, grad_faces, image_size):
-    return jt.code(grad_faces.shape, grad_faces.dtype, [faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map, grad_faces], 
+    return jt.code(grad_faces.shape, grad_faces.dtype, [faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map], 
     cuda_header='''
 #include <iostream>
 #include <cuda.h>
@@ -793,7 +792,7 @@ __global__ void backward_depth_map_cuda_kernel(
         const scalar_t* weight = &weight_map[i * 3];
         const scalar_t grad_depth = grad_depth_map[i];
         scalar_t* grad_face = &grad_faces[(bn * nf + fn) * 9];
-    
+        
         /* derivative wrt z */
         for (int k = 0; k < 3; k++) {
             const scalar_t z_k = face[3 * k + 2];
@@ -827,7 +826,7 @@ __global__ void backward_depth_map_cuda_kernel(
     @alias(grad_depth_map, in5)
     @alias(grad_faces, out0)
 
-
+    cudaMemsetAsync(out0_p, 0, out0->size);
     const auto batch_size = faces_shape0;
     const auto num_faces = faces_shape1;
     const int threads = 512;
