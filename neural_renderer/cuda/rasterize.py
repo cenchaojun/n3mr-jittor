@@ -202,7 +202,7 @@ __global__ void forward_face_index_map_cuda_kernel_2(
     cudaMemsetAsync(out1_p, 0, out1->size);
 
     thrust::device_ptr<out2_type> dev_ptr2(out2_p);
-    thrust::fill(dev_ptr2, dev_ptr2 + out2->num, 100.f);
+    thrust::fill(dev_ptr2, dev_ptr2 + out2->num, {far});
 
     cudaMemsetAsync(out3_p, 0, out3->size);
 

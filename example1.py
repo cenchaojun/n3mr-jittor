@@ -38,8 +38,6 @@ def main():
     # create texture [batch_size=1, num_faces, texture_size, texture_size, texture_size, RGB]
     textures = jt.ones((1, faces.shape[1], texture_size, texture_size, texture_size, 3), dtype="float32")
 
-    # to gpu
-
     # create renderer
     renderer = nr.Renderer(camera_mode='look_at')
 

@@ -1,8 +1,7 @@
 import jittor as jt
 
 def look_at(vertices, eye, at=[0, 0, 0], up=[0, 1, 0]):
-    """
-    "Look at" transformation of vertices.
+    """"Look at" transformation of vertices. The z axis is changed to (at - eye). Original vertices are transformed to the new axis.
     """
     if len(vertices.shape) != 3:
         raise ValueError('vertices Tensor should have 3 dimensions')
