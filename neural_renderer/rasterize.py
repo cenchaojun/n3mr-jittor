@@ -77,28 +77,28 @@ class RasterizeFunction(Function):
             textures = jt.array([0]).float32()
             self.texture_size = None
 
-        face_index_map = jt.ones((self.batch_size, self.image_size, self.image_size)).int() * -1
+        face_index_map = jt.empty((self.batch_size, self.image_size, self.image_size)).int() * -1
 
-        weight_map = jt.zeros((self.batch_size, self.image_size, self.image_size, 3))
+        weight_map = jt.empty((self.batch_size, self.image_size, self.image_size, 3))
 
-        depth_map = jt.ones((self.batch_size, self.image_size, self.image_size)) * self.far
+        depth_map = jt.empty((self.batch_size, self.image_size, self.image_size)) * self.far
 
         if self.return_rgb:
-            rgb_map = jt.zeros((self.batch_size, self.image_size, self.image_size, 3)).float()
-            sampling_index_map = jt.zeros((self.batch_size, self.image_size, self.image_size, 8)).int()
-            sampling_weight_map = jt.zeros((self.batch_size, self.image_size, self.image_size, 8))
+            rgb_map = jt.empty((self.batch_size, self.image_size, self.image_size, 3)).float()
+            sampling_index_map = jt.empty((self.batch_size, self.image_size, self.image_size, 8)).int()
+            sampling_weight_map = jt.empty((self.batch_size, self.image_size, self.image_size, 8))
         else:
             rgb_map = jt.zeros(1)
             sampling_index_map = jt.zeros(1).int()
             sampling_weight_map = jt.zeros(1)
 
         if self.return_alpha:
-            alpha_map = jt.zeros((self.batch_size, self.image_size, self.image_size))
+            alpha_map = jt.empty((self.batch_size, self.image_size, self.image_size))
         else:
             alpha_map = jt.zeros(1)
 
         if self.return_depth:
-            face_inv_map = jt.zeros((self.batch_size, self.image_size, self.image_size, 3, 3))
+            face_inv_map = jt.empty((self.batch_size, self.image_size, self.image_size, 3, 3))
         else:
             face_inv_map = jt.zeros(1)
 
@@ -124,7 +124,7 @@ class RasterizeFunction(Function):
         return rgb_r, alpha_r, depth_r
 
     def forward_face_index_map(self, faces, face_index_map, weight_map, depth_map, face_inv_map):
-        faces_inv = jt.zeros(faces.shape)
+        faces_inv = jt.empty(faces.shape)
         return rasterize_cuda.forward_face_index_map(faces, face_index_map, weight_map, depth_map, face_inv_map, faces_inv, self.image_size, self.near, self.far, int(self.return_rgb), int(self.return_alpha), int(self.return_depth))
 
     def forward_texture_sampling(self, faces, textures, face_index_map, weight_map, depth_map, rgb_map, sampling_index_map, sampling_weight_map):

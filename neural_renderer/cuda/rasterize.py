@@ -19,6 +19,7 @@ def forward_face_index_map(
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <cassert>
 
 #include <thrust/device_ptr.h>
 #include <thrust/fill.h>
@@ -85,7 +86,11 @@ __global__ void forward_face_index_map_cuda_kernel_1(
     }
 }
 
-template <typename scalar_t>
+template <typename scalar_t,
+        int image_size,
+        int return_rgb,
+        int return_alpha,
+        int return_depth>
 __global__ void forward_face_index_map_cuda_kernel_2(
         const scalar_t* faces,
         scalar_t* faces_inv,
@@ -95,12 +100,8 @@ __global__ void forward_face_index_map_cuda_kernel_2(
         scalar_t* __restrict__ face_inv_map,
         int batch_size,
         int num_faces,
-        int image_size,
         scalar_t near,
-        scalar_t far,
-        int return_rgb,
-        int return_alpha,
-        int return_depth) {
+        scalar_t far) {
 
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= batch_size * image_size * image_size) {
@@ -223,7 +224,13 @@ __global__ void forward_face_index_map_cuda_kernel_2(
             printf("Error in forward_face_index_map_1: %s\\n", cudaGetErrorString(err));
 
     const dim3 blocks_2 ((batch_size * {image_size} * {image_size} - 1) / threads +1);
-    forward_face_index_map_cuda_kernel_2<float32><<<blocks_2, threads>>>(
+    forward_face_index_map_cuda_kernel_2<
+        float32,
+        (int) {image_size},
+        {return_rgb},
+        {return_alpha},
+        {return_depth}
+    ><<<blocks_2, threads>>>(
         faces_p,
         faces_inv_p,
         face_index_map_p,
@@ -232,12 +239,8 @@ __global__ void forward_face_index_map_cuda_kernel_2(
         face_inv_map_p,
         (int) batch_size,
         (int) num_faces,
-        (int) {image_size},
         (float32) {near},
-        (float32) {far},
-        {return_rgb},
-        {return_alpha},
-        {return_depth});
+        (float32) {far});
 
     err = cudaGetLastError();
     if (err != cudaSuccess) 

@@ -26,9 +26,16 @@ def projection(vertices, K, R, t, dist_coeffs, orig_size, eps=1e-9):
     k3 = dist_coeffs[:,4].unsqueeze(1)
 
     # we use x_ for x' and x__ for x'' etc.
-    r = jt.sqrt(x_ ** 2 + y_ ** 2)
-    x__ = x_*(1 + k1*(r**2) + k2*(r**4) + k3*(r**6)) + 2*p1*x_*y_ + p2*(r**2 + 2*x_**2)
-    y__ = y_*(1 + k1*(r**2) + k2*(r**4) + k3 *(r**6)) + p1*(r**2 + 2*y_**2) + 2*p2*x_*y_
+    x_2 = x_.sqr()
+    y_2 = y_.sqr()
+    r = jt.sqrt(x_2 + y_2)
+    r2 = r.sqr()
+    r4 = r2.sqr()
+    r6 = r4 * r2
+
+    tmp = k1*(r2) + k2*(r4) + k3*(r6) + 1
+    x__ = x_* tmp + 2*p1*x_*y_ + p2*(r2 + 2*x_2)
+    y__ = y_* tmp + p1*(r2 + 2*y_2) + 2*p2*x_*y_
 
     vertices = jt.stack([x__, y__, jt.ones(z.shape)], dim=-1)
     vertices = jt.matmul(vertices, K.transpose((0,2,1))[0])
