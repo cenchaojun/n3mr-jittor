@@ -14,7 +14,8 @@ def forward_face_index_map(
     return_rgb,
     return_alpha,
     return_depth):
-    return jt.code([face_index_map.shape, weight_map.shape, depth_map.shape, face_inv_map.shape], [face_index_map.dtype, weight_map.dtype, depth_map.dtype, face_inv_map.dtype], [faces, faces_inv], 
+    lock = jt.empty(depth_map.shape, 'int')
+    return jt.code([face_index_map.shape, weight_map.shape, depth_map.shape, face_inv_map.shape], [face_index_map.dtype, weight_map.dtype, depth_map.dtype, face_inv_map.dtype], [faces, faces_inv, lock], 
     cuda_header='''
 
 #include <cuda.h>
@@ -40,18 +41,34 @@ static __inline__ __device__ double atomicAdd(double* address, double val) {
 #endif
 
 namespace{
-template <typename scalar_t>
-__global__ void forward_face_index_map_cuda_kernel_1(
-        const scalar_t* __restrict__ faces,
-        scalar_t* __restrict__ faces_inv,
+template <typename scalar_t,
+        int image_size,
+        int return_rgb,
+        int return_alpha,
+        int return_depth>
+__global__ void forward_face_index_map_cuda_kernel(
+        const scalar_t* faces,
+        scalar_t* faces_inv,
+        int32_t*  face_index_map,
+        scalar_t*  weight_map,
+        scalar_t*  depth_map,
+        scalar_t*  face_inv_map,
         int batch_size,
         int num_faces,
-        int image_size) {
+        scalar_t near,
+        scalar_t far,
+        int threads_n_bits,
+        int32_t* dev_tilemutex) {
     /* batch number, face, number, image size, face[v012][RGB] */
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= batch_size * num_faces) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= batch_size * (1<<threads_n_bits)) {
         return;
     }
+    const int fn = i & ((1<<threads_n_bits) - 1);
+     if (fn >= num_faces)
+        return;
+    const int bn = i>>threads_n_bits;
+    i = bn * num_faces + fn;
     const int is = image_size;
     const scalar_t* face = &faces[i * 9];
     scalar_t* face_inv_g = &faces_inv[i * 9];
@@ -77,116 +94,89 @@ __global__ void forward_face_index_map_cuda_kernel_1(
         p[2][0] * (p[0][1] - p[1][1]) +
         p[0][0] * (p[1][1] - p[2][1]) +
         p[1][0] * (p[2][1] - p[0][1]));
+    /* set to global memory */
     for (int k = 0; k < 9; k++) {
         face_inv[k] /= face_inv_denominator;
-    }
-    /* set to global memory */
-    for (int k = 0; k < 9; k++) {
         face_inv_g[k] = face_inv[k];
     }
-}
 
-template <typename scalar_t,
-        int image_size,
-        int return_rgb,
-        int return_alpha,
-        int return_depth>
-__global__ void forward_face_index_map_cuda_kernel_2(
-        const scalar_t* faces,
-        scalar_t* faces_inv,
-        int32_t* __restrict__ face_index_map,
-        scalar_t* __restrict__ weight_map,
-        scalar_t* __restrict__ depth_map,
-        scalar_t* __restrict__ face_inv_map,
-        int batch_size,
-        int num_faces,
-        scalar_t near,
-        scalar_t far) {
-
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= batch_size * image_size * image_size) {
-        return;
+    /* compute the bounding box of triangle facet */
+    scalar_t x_min=is, y_min=is, x_max=0, y_max=0;
+    for (int num = 0; num < 3; num++) {
+        if (p[num][0] < x_min)
+            x_min = p[num][0];
+        if (p[num][0] > x_max)
+            x_max = p[num][0];
+        if (p[num][1] < y_min)
+            y_min = p[num][1];
+        if (p[num][1] > y_max)
+            y_max = p[num][1];
     }
-    const int is = image_size;
-    const int nf = num_faces;
-    const int bn = i / (is * is);
-    const int pn = i % (is * is);
-    const int yi = pn / is;
-    const int xi = pn % is;
-    const scalar_t yp = (2. * yi + 1 - is) / is;
-    const scalar_t xp = (2. * xi + 1 - is) / is;
-    
-    const scalar_t* face = &faces[bn * nf * 9] - 9;
-    scalar_t* face_inv = &faces_inv[bn * nf * 9] - 9;
-    scalar_t depth_min = far;
-    int face_index_min = -1;
-    scalar_t weight_min[3];
-    scalar_t face_inv_min[9];
-    for (int fn = 0; fn < nf; fn++) {
-        /* go to next face */
-        face += 9;
-        face_inv += 9;
-    
-        /* return if backside */
-        if ((face[7] - face[1]) * (face[3] - face[0]) < (face[4] - face[1]) * (face[6] - face[0]))
-            continue;
-    
-        /* check [py, px] is inside the face */
-        if (((yp - face[1]) * (face[3] - face[0]) < (xp - face[0]) * (face[4] - face[1])) ||
-            ((yp - face[4]) * (face[6] - face[3]) < (xp - face[3]) * (face[7] - face[4])) ||
-            ((yp - face[7]) * (face[0] - face[6]) < (xp - face[6]) * (face[1] - face[7])))
-            continue;
-    
-        /* compute w = face_inv * p */
-        scalar_t w[3];
-        w[0] = face_inv[3 * 0 + 0] * xi + face_inv[3 * 0 + 1] * yi + face_inv[3 * 0 + 2];
-        w[1] = face_inv[3 * 1 + 0] * xi + face_inv[3 * 1 + 1] * yi + face_inv[3 * 1 + 2];
-        w[2] = face_inv[3 * 2 + 0] * xi + face_inv[3 * 2 + 1] * yi + face_inv[3 * 2 + 2];
-    
-        /* sum(w) -> 1, 0 < w < 1 */
-        scalar_t w_sum = 0;
-        for (int k = 0; k < 3; k++) {
-            w[k] = min(max(w[k], 0.), 1.);
-            w_sum += w[k];
-        }
-        for (int k = 0; k < 3; k++) {
-            w[k] /= w_sum;
-        }
-        /* compute 1 / zp = sum(w / z) */
-        const scalar_t zp = 1. / (w[0] / face[2] + w[1] / face[5] + w[2] / face[8]);
-        if (zp <= near || far <= zp) {
-            continue;
-        }
-    
-        /* check z-buffer */
-        if (zp < depth_min) {
-            depth_min = zp;
-            face_index_min = fn;
+
+    int ix_min = max(0, (int)x_min);
+    int ix_max = min(is-1, (int)x_max);
+    int iy_min = max(0, (int)y_min);
+    int iy_max = min(is-1, (int)y_max);
+
+    /* traverse each pixel in the bounding box */
+    for (int xi=ix_min;xi<=ix_max;xi++) {
+        for (int yi=iy_min;yi<=iy_max;yi++) {
+            const scalar_t yp = (2. * yi + 1 - is) / is;
+            const scalar_t xp = (2. * xi + 1 - is) / is;
+            /* check [py, px] is inside the face */
+            if (((yp - face[1]) * (face[3] - face[0]) < (xp - face[0]) * (face[4] - face[1])) ||
+                ((yp - face[4]) * (face[6] - face[3]) < (xp - face[3]) * (face[7] - face[4])) ||
+                ((yp - face[7]) * (face[0] - face[6]) < (xp - face[6]) * (face[1] - face[7])))
+                continue;
+
+            int i1 = bn * is * is + yi * is + xi;
+            /* compute w = face_inv * p */
+            scalar_t w[3];
+            w[0] = face_inv[3 * 0 + 0] * xi + face_inv[3 * 0 + 1] * yi + face_inv[3 * 0 + 2];
+            w[1] = face_inv[3 * 1 + 0] * xi + face_inv[3 * 1 + 1] * yi + face_inv[3 * 1 + 2];
+            w[2] = face_inv[3 * 2 + 0] * xi + face_inv[3 * 2 + 1] * yi + face_inv[3 * 2 + 2];
+
+            /* sum(w) -> 1, 0 < w < 1 */
+            scalar_t w_sum = 0;
             for (int k = 0; k < 3; k++) {
-                weight_min[k] = w[k];
+                w[k] = min(max(w[k], 0.), 1.);
+                w_sum += w[k];
             }
-            if (return_depth) {
-                for (int k = 0; k < 9; k++) {
-                    face_inv_min[k] = face_inv[k];
+            for (int k = 0; k < 3; k++) {
+                w[k] /= w_sum;
+            }
+            /* compute 1 / zp = sum(w / z) */
+            const scalar_t zp = 1. / (w[0] / face[2] + w[1] / face[5] + w[2] / face[8]);
+            if (zp <= near || far <= zp) {
+                continue;
+            }
+            /* check z-buffer */
+            bool isSet;
+            do
+            {
+                isSet = (atomicCAS(&dev_tilemutex[i1], 0, 1) == 0);
+                if (isSet)
+                {
+                    if (zp < depth_map[i1]) {
+                        depth_map[i1] = zp;
+                        face_index_map[i1] = fn;
+                        for (int k = 0; k < 3; k++) {
+                            weight_map[3 * i1 + k] = w[k];
+                        }
+                        if (return_depth) {
+                            for (int k = 0; k < 9; k++) {
+                                face_inv_map[9 * i1 + k] = face_inv[k];
+                            }
+                        }
+                    }
+                    __threadfence();
+                    dev_tilemutex[i1] = 0;
                 }
-            }
-        }
-    }
-    
-    /* set to global memory */
-    if (0 <= face_index_min) {
-        depth_map[i] = depth_min;
-        face_index_map[i] = face_index_min;
-        for (int k = 0; k < 3; k++) {
-            weight_map[3 * i + k] = weight_min[k];
-        }
-        if (return_depth) {
-            for (int k = 0; k < 9; k++) {
-                face_inv_map[9 * i + k] = face_inv_min[k];
-            }
+            } while (!isSet);
         }
     }
 }
+
 }
     ''',
     cuda_src=f'''
@@ -209,28 +199,19 @@ __global__ void forward_face_index_map_cuda_kernel_2(
 
     const auto batch_size = faces_shape0;
     const auto num_faces = faces_shape1;
-    const int threads = 512;
-    const dim3 blocks_1 ((batch_size * num_faces - 1) / threads +1);
+    const int threads = 256;
+    const int threads_n_bits = NanoVector::get_nbits(num_faces) - 1;
+    const dim3 blocks_1 ((batch_size * (1<<threads_n_bits) - 1) / threads +1);
 
-    forward_face_index_map_cuda_kernel_1<float32><<<blocks_1, threads>>>(
-        faces_p,
-        faces_inv_p,
-        batch_size,
-        num_faces,
-        {image_size});
+    cudaMemsetAsync(in2_p, 0, in2->size);
 
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) 
-            printf("Error in forward_face_index_map_1: %s\\n", cudaGetErrorString(err));
-
-    const dim3 blocks_2 ((batch_size * {image_size} * {image_size} - 1) / threads +1);
-    forward_face_index_map_cuda_kernel_2<
+    forward_face_index_map_cuda_kernel<
         float32,
         (int) {image_size},
         {return_rgb},
         {return_alpha},
-        {return_depth}
-    ><<<blocks_2, threads>>>(
+        {return_depth}  
+    ><<<blocks_1, threads>>>(
         faces_p,
         faces_inv_p,
         face_index_map_p,
@@ -240,11 +221,13 @@ __global__ void forward_face_index_map_cuda_kernel_2(
         (int) batch_size,
         (int) num_faces,
         (float32) {near},
-        (float32) {far});
+        (float32) {far},
+        threads_n_bits,
+        in2_p);
 
-    err = cudaGetLastError();
+    cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) 
-        printf("Error in forward_face_index_map_2: %s\\n", cudaGetErrorString(err));
+            printf("Error in forward_face_index_map: %s\\n", cudaGetErrorString(err));
     ''')
 
 def forward_texture_sampling(faces, textures, face_index_map, weight_map, depth_map, rgb_map, sampling_index_map, sampling_weight_map, image_size, eps):

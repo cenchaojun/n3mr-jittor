@@ -77,7 +77,7 @@ class RasterizeFunction(Function):
             textures = jt.array([0]).float32()
             self.texture_size = None
 
-        face_index_map = jt.empty((self.batch_size, self.image_size, self.image_size)).int() * -1
+        face_index_map = jt.empty((self.batch_size, self.image_size, self.image_size)).int()
 
         weight_map = jt.empty((self.batch_size, self.image_size, self.image_size, 3))
 
