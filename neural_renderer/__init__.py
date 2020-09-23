@@ -9,6 +9,7 @@ from .projection import projection
 from .rasterize import (rasterize_rgbad, rasterize, rasterize_silhouettes, rasterize_depth, Rasterize)
 from .renderer import Renderer
 from .vertices_to_faces import vertices_to_faces
+from .save_obj import save_obj
 
 __version__ = '1.0.0'
 name = 'neural_renderer_jittor'
