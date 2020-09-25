@@ -145,7 +145,7 @@ class RasterizeFunction(Function):
 
     def forward_alpha_map(self, alpha_map, face_index_map):
         if self.return_alpha:
-            alpha_map[face_index_map >= 0] = 1
+            return (face_index_map >= 0).float()
         return alpha_map
 
     def backward_pixel_map(self, faces, face_index_map, rgb_map, alpha_map, grad_rgb_map, grad_alpha_map, grad_faces):
@@ -236,7 +236,7 @@ def rasterize_rgbad(
         rgb, alpha, depth = Rasterize(image_size * 2, near, far, eps, background_color, return_rgb, return_alpha, return_depth)(*inputs)
     else:
         rgb, alpha, depth = Rasterize(image_size, near, far, eps, background_color, return_rgb, return_alpha, return_depth)(*inputs)
-
+    
     # transpose & vertical flip
     if return_rgb:
         rgb = rgb.permute((0, 3, 1, 2))
